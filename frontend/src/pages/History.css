@@ -1,0 +1,280 @@
+.history-page {
+  padding: 2.5rem;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .history-page {
+    padding: 1.25rem;
+  }
+}
+
+.page-header {
+  margin-bottom: 2.5rem;
+}
+
+.page-header h1 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.page-header p {
+  color: #64748B;
+  font-size: 1rem;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+  font-size: 0.9rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #0F172A;
+  background-color: #F8FAFC;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.history-table-container {
+  background: white;
+  border-radius: 12px;
+  overflow: auto;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid #F1F5F9;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.history-table th {
+  background-color: #F8FAFC;
+  padding: 1rem 1.5rem;
+  font-size: 0.8rem;
+  color: #64748B;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.history-table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #F1F5F9;
+  color: #475569;
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.history-table tr:hover {
+  background-color: #F8FAFC;
+}
+
+.time-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.time-sub {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  margin-top: 0.2rem;
+}
+
+.customer-cell {
+  font-weight: 600;
+  color: #0F172A;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.format-badge {
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.format-badge.pdf { background-color: #FEF2F2; color: #DC2626; }
+.format-badge.docx { background-color: #EFF6FF; color: #2563EB; }
+
+.filename-cell {
+  color: #94A3B8;
+  font-size: 0.8rem;
+  font-family: inherit;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-history {
+  text-align: center;
+  padding: 4rem !important;
+  color: #94A3B8;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.view-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.view-link.pdf {
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border-color: #FEE2E2;
+}
+
+.view-link.pdf:hover {
+  background-color: #DC2626;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.view-link.docx {
+  background-color: #EFF6FF;
+  color: #2563EB;
+  border-color: #DBEAFE;
+}
+
+.view-link.docx:hover {
+  background-color: #2563EB;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.6rem;
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+  .history-table th.format-header,
+  .history-table td.format-cell,
+  .history-table th.filename-header,
+  .history-table td.filename-cell {
+    display: none;
+  }
+
+  .history-table th, .history-table td {
+    padding: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .customer-cell {
+    font-size: 0.9rem;
+    white-space: normal;
+    word-break: break-word;
+    min-width: 120px;
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-page {
+    padding: 0.1rem;
+  }
+
+  .page-header {
+    margin-bottom: 0.75rem;
+    padding: 0 0.4rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.15rem;
+  }
+
+  .history-table th, .history-table td {
+    padding: 0.4rem 0.3rem;
+  }
+
+  .time-cell {
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .time-sub {
+    font-size: 0.6rem;
+    font-weight: 400;
+    color: #94A3B8;
+  }
+
+  .customer-cell {
+    font-size: 0.75rem;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.2;
+    min-width: 80px;
+    max-width: none;
+  }
+
+  .btn-text {
+    display: none;
+  }
+
+  .view-link {
+    padding: 0.35rem;
+    width: 28px;
+    height: 28px;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.8rem;
+  }
+
+  .action-buttons {
+    flex-direction: row;
+    gap: 0.3rem;
+    justify-content: center;
+  }
+}
+.customer-subdetail {
+  color: #64748B;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
