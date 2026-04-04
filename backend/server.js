@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import DocumentRouter from './routes/documentRoutes.js';
@@ -10,6 +11,13 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Ensure generated directory exists for storing documents
+const generatedDir = path.join(__dirname, 'generated');
+if (!fs.existsSync(generatedDir)) {
+  fs.mkdirSync(generatedDir, { recursive: true });
+  console.log('📁 Created generated directory');
+}
 
 // Middleware
 app.use(cors({
