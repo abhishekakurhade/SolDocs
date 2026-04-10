@@ -2,16 +2,32 @@ import React, { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import './SignIn.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+// Wake up the backend server (Render free tier goes to sleep after inactivity)
+const wakeUpBackend = () => {
+  fetch(`${API_URL}/health`, { method: 'GET', signal: AbortSignal.timeout(30000) })
+    .then(() => console.log('✅ Backend is awake'))
+    .catch(() => console.warn('⚠️ Backend wake-up ping failed (may still be starting)'));
+};
+
 function SignIn({ onLogin }) {
   const [userid, setUserid] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [serverStatus, setServerStatus] = useState('');  // 'waking' | 'ready' | ''
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // 🚀 Immediately wake up the backend (runs in background, parallel to login)
+    // This ensures the WCR page server is ready before the user navigates there
+    setServerStatus('waking');
+    wakeUpBackend();
+    setTimeout(() => setServerStatus('ready'), 8000); // optimistically mark ready after 8s
 
     try {
       const { data, error } = await supabase
@@ -23,6 +39,7 @@ function SignIn({ onLogin }) {
 
       if (error || !data) {
         setError('Invalid User ID or Password.');
+        setServerStatus('');
         setLoading(false);
         return;
       }
@@ -30,6 +47,7 @@ function SignIn({ onLogin }) {
       onLogin(data);
     } catch (err) {
       setError('An error occurred during login. Please try again.');
+      setServerStatus('');
       console.error(err);
     } finally {
       if (!error) setLoading(false);
@@ -73,6 +91,19 @@ function SignIn({ onLogin }) {
           <button type="submit" className="signin-btn" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
           </button>
+
+          {serverStatus === 'waking' && (
+            <div className="server-status waking">
+              <span className="status-dot"></span>
+              Connecting to server...
+            </div>
+          )}
+          {serverStatus === 'ready' && (
+            <div className="server-status ready">
+              <span className="status-dot"></span>
+              Server ready ✓
+            </div>
+          )}
         </form>
 
         

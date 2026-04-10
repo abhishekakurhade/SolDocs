@@ -125,3 +125,48 @@
 .forgot-link:hover {
   text-decoration: underline;
 }
+
+/* Backend server warm-up status indicator */
+.server-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 12px;
+  justify-content: center;
+  border-radius: 20px;
+  padding: 6px 14px;
+}
+
+.server-status.waking {
+  color: #b45309;
+  background-color: #fef3c7;
+}
+
+.server-status.ready {
+  color: #166534;
+  background-color: #dcfce7;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.waking .status-dot {
+  background-color: #f59e0b;
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+.ready .status-dot {
+  background-color: #22c55e;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
