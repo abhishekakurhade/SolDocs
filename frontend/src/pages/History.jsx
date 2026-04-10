@@ -101,11 +101,18 @@ const History = () => {
                     <div className="action-buttons">
                       {entry.word_url ? (
                         <a
-                          href={`${API_URL}${entry.word_url}`}
+                          href={
+                            // New entries: word_url is a full Supabase Storage public URL
+                            // Old entries: word_url is a relative path like /generated/...
+                            entry.word_url.startsWith('http')
+                              ? entry.word_url
+                              : `${API_URL}${entry.word_url}`
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="view-link docx"
-                          title="View Word"
+                          title="Download Word Document"
+                          download
                         >
                           <FontAwesomeIcon icon={faFileWord} /> <span className="btn-text">DOCX</span>
                         </a>
