@@ -15,7 +15,6 @@ const Profile = () => {
     mobile_number: '',
     address: '',
     site_address: '',
-    district: '',
     sub_division: '',
     logo: ''
   });
@@ -39,7 +38,6 @@ const Profile = () => {
             mobile_number: data.mobile_number || '',
             address: data.address || '',
             site_address: data.site_address || '',
-            district: data.district || '',
             sub_division: data.sub_division || '',
             logo: data.company_logo || ''
           });
@@ -85,7 +83,6 @@ const Profile = () => {
         email: profile.email,
         mobile_number: profile.mobile_number,
         address: profile.address,
-        district: profile.district,
         sub_division: profile.sub_division,
         company_logo: profile.logo
       }).eq('userid', user.userid);
@@ -191,18 +188,6 @@ const Profile = () => {
                   placeholder="Official mobile contact"
                 />
               </div>
-              <div className="form-group">
-                <label>District</label>
-                <input
-                  type="text"
-                  name="district"
-                  value={profile.district}
-                  onChange={handleChange}
-                  placeholder="Primary district of operation"
-                />
-              </div>
-              
-              
             </div>
           </div>
 

@@ -126,7 +126,48 @@ router.post('/generate-wcr', async (req, res) => {
 
     if (insertError) console.error('Supabase Insert Error:', insertError);
 
-    // 5. Send the generated document directly to the user for immediate download
+    // 5. Auto-cleanup: keep only the 25 most recent reports per user.
+    //    If the count exceeds 25, delete the oldest records (+ their Storage files).
+    try {
+      const MAX_RECORDS = 25;
+      const { data: allReports, error: fetchErr } = await supabase
+        .from('reports')
+        .select('id, word_url, timestamp')
+        .eq('technician_id', userid)
+        .order('timestamp', { ascending: false }); // newest first
+
+      if (!fetchErr && allReports && allReports.length > MAX_RECORDS) {
+        const toDelete = allReports.slice(MAX_RECORDS); // everything beyond the top 25
+
+        for (const record of toDelete) {
+          // Delete Storage file if URL is a Supabase Storage URL
+          if (record.word_url && record.word_url.startsWith('http')) {
+            try {
+              // Extract the path inside the bucket from the public URL
+              // URL format: https://<project>.supabase.co/storage/v1/object/public/wcr-documents/<path>
+              const urlObj = new URL(record.word_url);
+              const pathParts = urlObj.pathname.split('/wcr-documents/');
+              if (pathParts.length === 2) {
+                const storagePath = pathParts[1];
+                await supabase.storage.from('wcr-documents').remove([storagePath]);
+              }
+            } catch (storageErr) {
+              console.warn('Auto-cleanup storage delete failed for record', record.id, storageErr.message);
+            }
+          }
+
+          // Delete DB row
+          await supabase.from('reports').delete().eq('id', record.id);
+        }
+
+        console.log(`Auto-cleanup: removed ${toDelete.length} old record(s) for user ${userid}`);
+      }
+    } catch (cleanupErr) {
+      // Non-fatal — log and continue
+      console.warn('Auto-cleanup error:', cleanupErr.message);
+    }
+
+    // 6. Send the generated document directly to the user for immediate download
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', fileBuffer.length);

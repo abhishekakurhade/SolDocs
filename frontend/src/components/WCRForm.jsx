@@ -20,8 +20,7 @@ const WCRForm = () => {
     { title: 'Customer Information', icon: <FontAwesomeIcon icon={faUser} />, id: 'personal' },
     { title: 'Address Information', icon: <FontAwesomeIcon icon={faMapMarkerAlt} />, id: 'address' },
     { title: 'Solar Details', icon: <FontAwesomeIcon icon={faSun} />, id: 'solar' },
-    { title: 'Inverter Details', icon: <FontAwesomeIcon icon={faPlug} />, id: 'inverter' },
-    { title: 'Company Information', icon: <FontAwesomeIcon icon={faBuilding} />, id: 'contact' }
+    { title: 'Inverter Details', icon: <FontAwesomeIcon icon={faPlug} />, id: 'inverter' }
   ];
 
   useEffect(() => {
@@ -46,8 +45,6 @@ const WCRForm = () => {
             initialState[field.name] = profileData.company_name || '';
           } else if (field.name === 'company_address') {
             initialState[field.name] = profileData.company_address || '';
-          } else if (field.name === 'district') {
-            initialState[field.name] = profileData.district || '';
           } else {
             initialState[field.name] = '';
           }
@@ -93,9 +90,6 @@ const WCRForm = () => {
     const requiredForPersonal = ['name', 'consumer_number', 'aadhar_number', 'mobile_number', 'email'];
 
     const missingFields = currentFields.filter(field => {
-      // Step 4 (contact) is not required
-      if (stepId === 'contact') return false;
-
       // Step 0 (personal) has specific required fields
       if (stepId === 'personal') {
         return requiredForPersonal.includes(field.name) && !formData[field.name];
@@ -188,18 +182,46 @@ const WCRForm = () => {
         return fields.filter(f => ['installation_date', 'sanctioned_capacity', 'sanction_number', 'category'].includes(f.name));
       case 'inverter':
         return fields.filter(f => ['module', 'number_module', 'wattage', 'total_capacity', 'almm_model_number', 'inverter_make', 'capacity_of_inverter', 'year_of_manufacturing', 'Phase',].includes(f.name));
-      case 'contact':
-        return fields.filter(f => ['company_name', 'company_address',].includes(f.name));
       default:
         return [];
     }
   };
 
+  const getRequiredFields = () => {
+    let required = [];
+    steps.forEach(step => {
+      const stepFields = getStepFields(step.id);
+      if (step.id === 'personal') {
+        required = [...required, ...stepFields.filter(f => ['name', 'consumer_number', 'aadhar_number', 'mobile_number', 'email'].includes(f.name))];
+      } else {
+        required = [...required, ...stepFields];
+      }
+    });
+    return required;
+  };
+
   const currentStepFields = getStepFields(steps[currentStep].id);
-  const progressPercent = Math.round(((currentStep + 1) / steps.length) * 100);
+  
+  const requiredFields = getRequiredFields();
+  const filledRequiredFields = requiredFields.filter(f => {
+    const val = formData[f.name];
+    return val && val.toString().trim() !== '';
+  });
+  
+  const progressPercent = requiredFields.length > 0 ? Math.round((filledRequiredFields.length / requiredFields.length) * 100) : 0;
 
   return (
     <div className="wcr-stepper-container">
+      {/* Generating overlay — visible on all screens, especially helpful on mobile/tablet */}
+      {wordLoading && (
+        <div className="generating-overlay">
+          <div className="generating-card">
+            <div className="generating-spinner"></div>
+            <p className="generating-title">Generating Document...</p>
+            <p className="generating-sub">Please wait, your Word file is being created.</p>
+          </div>
+        </div>
+      )}
       <div className="stepper-wrapper no-print">
         <div className="profile-completeness">
           <span>Profile Completeness</span>
@@ -236,9 +258,8 @@ const WCRForm = () => {
                 <div key={field.name} className="form-group">
                   <label htmlFor={field.name}>
                     {field.label}
-                    {(steps[currentStep].id !== 'contact' &&
-                      (steps[currentStep].id !== 'personal' || ['name', 'consumer_number', 'aadhar_number', 'mobile_number', 'email'].includes(field.name))
-                    ) && <span className="required">*</span>}
+                    {(steps[currentStep].id !== 'personal' || ['name', 'consumer_number', 'aadhar_number', 'mobile_number', 'email'].includes(field.name))
+                     && <span className="required">*</span>}
                   </label>
                   {field.type === 'date' ? (
                     <div className="date-input-wrapper">

@@ -278,3 +278,48 @@
   font-size: 0.8rem;
   margin-top: 4px;
 }
+
+/* Delete button */
+.delete-cell {
+  text-align: center;
+  width: 48px;
+}
+
+.delete-header {
+  width: 48px;
+}
+
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #FEE2E2;
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background-color: #DC2626;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+}
+
+.delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .delete-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileWord, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faFileWord, faSearch, faTrash } from '@fortawesome/free-solid-svg-icons';
 import './History.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -15,6 +15,7 @@ const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -35,6 +36,23 @@ const History = () => {
     };
     fetchHistory();
   }, []);
+
+  const handleDelete = async (entry) => {
+    if (!window.confirm(`Delete record for "${entry.customer_name}"? This cannot be undone.`)) return;
+    setDeletingId(entry.id);
+    try {
+      // Delete from DB
+      const { error } = await supabase.from('reports').delete().eq('id', entry.id);
+      if (error) throw error;
+      // Remove from local state
+      setHistory(prev => prev.filter(h => h.id !== entry.id));
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete record. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (loading) return <div className="loading">Loading history...</div>;
 
@@ -77,6 +95,7 @@ const History = () => {
               <th className="format-header">Format</th>
               <th className="filename-header">Filename</th>
               <th>Action</th>
+              <th className="delete-header"></th>
             </tr>
           </thead>
           <tbody>
@@ -102,8 +121,6 @@ const History = () => {
                       {entry.word_url ? (
                         <a
                           href={
-                            // New entries: word_url is a full Supabase Storage public URL
-                            // Old entries: word_url is a relative path like /generated/...
                             entry.word_url.startsWith('http')
                               ? entry.word_url
                               : `${API_URL}${entry.word_url}`
@@ -118,6 +135,18 @@ const History = () => {
                         </a>
                       ) : <span className="no-view">N/A</span>}
                     </div>
+                  </td>
+                  <td className="delete-cell">
+                    <button
+                      className="delete-btn"
+                      title="Delete record"
+                      onClick={() => handleDelete(entry)}
+                      disabled={deletingId === entry.id}
+                    >
+                      {deletingId === entry.id
+                        ? <span className="deleting-spinner">⏳</span>
+                        : <FontAwesomeIcon icon={faTrash} />}
+                    </button>
                   </td>
                 </tr>
               ))
