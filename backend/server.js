@@ -33,8 +33,11 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from generated folder
 app.use('/generated', express.static(path.join(__dirname, 'generated')));
 
+import AuthRouter from './routes/authRoutes.js';
+
 // Routes
 app.use('/api', DocumentRouter);
+app.use('/api/auth', AuthRouter);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -1,0 +1,20 @@
+.toggle-password-btn {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--outline);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0;
+  outline: none;
+}
+.toggle-password-btn:hover {
+  color: var(--primary);
+}
+.input-wrapper input.password-input {
+  padding-right: 4rem;
+}

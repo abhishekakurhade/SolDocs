@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars, faTimes, faHome, faHistory, faUser, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faTimes, faHome, faHistory, faUser, faFileAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../services/supabaseClient';
 import './Layout.css';
 
@@ -22,6 +22,12 @@ const Layout = () => {
     if (window.innerWidth <= 768) {
       setIsSidebarCollapsed(true);
     }
+  };
+
+  const handleLogout = async () => {
+    sessionStorage.removeItem('technician_user');
+    await supabase.auth.signOut();
+    window.location.href = '/';
   };
 
   useEffect(() => {
@@ -82,6 +88,10 @@ const Layout = () => {
             <FontAwesomeIcon icon={faUser} className="icon" />
             {!isSidebarCollapsed && <span className="label">Profile</span>}
           </NavLink>
+          <div onClick={handleLogout} className="nav-item" style={{ cursor: 'pointer', marginTop: 'auto' }}>
+            <FontAwesomeIcon icon={faSignOutAlt} className="icon" style={{ color: '#ef4444' }} />
+            {!isSidebarCollapsed && <span className="label" style={{ color: '#ef4444' }}>Logout</span>}
+          </div>
         </nav>
         <div className="sidebar-footer">
           {/* {!isSidebarCollapsed && <div className="version">v2.0.0</div>} */}
@@ -97,7 +107,7 @@ const Layout = () => {
             <h1 className="brand-logo-text">SolDocs</h1>
           </div>
 
-          <div className="top-bar-right">
+          <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {profile?.company_logo && (
               <img src={profile.company_logo} alt="Company Logo" className="navbar-company-logo" />
             )}

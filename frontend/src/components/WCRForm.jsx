@@ -13,6 +13,7 @@ const WCRForm = () => {
   const [fetchingFields, setFetchingFields] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [hasIncompleteProfile, setHasIncompleteProfile] = useState(false);
   const [isOtherCategory, setIsOtherCategory] = useState(false);
   const [isOtherPhase, setIsOtherPhase] = useState(false);
 
@@ -32,7 +33,14 @@ const WCRForm = () => {
         let profileData = {};
         if (user && user.userid) {
           const { data } = await supabase.from('technicians').select('*').eq('userid', user.userid).single();
-          if (data) profileData = data;
+          if (data) {
+            profileData = data;
+            if (!data.company_name || !data.company_address) {
+              setHasIncompleteProfile(true);
+            }
+          } else {
+            setHasIncompleteProfile(true);
+          }
         }
 
         const fieldsData = await fetchWCRTemplateFields();
@@ -201,13 +209,13 @@ const WCRForm = () => {
   };
 
   const currentStepFields = getStepFields(steps[currentStep].id);
-  
+
   const requiredFields = getRequiredFields();
   const filledRequiredFields = requiredFields.filter(f => {
     const val = formData[f.name];
     return val && val.toString().trim() !== '';
   });
-  
+
   const progressPercent = requiredFields.length > 0 ? Math.round((filledRequiredFields.length / requiredFields.length) * 100) : 0;
 
   return (
@@ -249,6 +257,13 @@ const WCRForm = () => {
             <h2>{steps[currentStep].title}</h2>
           </header>
 
+          {hasIncompleteProfile && (
+            <div className="alert alert-error" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #f87171' }}>
+              <FontAwesomeIcon icon={faBuilding} />
+              <span><strong>Action Required:</strong> Please complete your Profile first. Your Company details are missing, which means they will not appear in the generated WCR document.</span>
+            </div>
+          )}
+
           {error && <div className="alert alert-error">{error}</div>}
           {success && <div className="alert alert-success">{success}</div>}
 
@@ -259,7 +274,7 @@ const WCRForm = () => {
                   <label htmlFor={field.name}>
                     {field.label}
                     {(steps[currentStep].id !== 'personal' || ['name', 'consumer_number', 'aadhar_number', 'mobile_number', 'email'].includes(field.name))
-                     && <span className="required">*</span>}
+                      && <span className="required">*</span>}
                   </label>
                   {field.type === 'date' ? (
                     <div className="date-input-wrapper">
