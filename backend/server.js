@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import DocumentRouter from './routes/documentRoutes.js';
+import AuthRouter from './routes/authRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,8 +33,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from generated folder
 app.use('/generated', express.static(path.join(__dirname, 'generated')));
-
-import AuthRouter from './routes/authRoutes.js';
 
 // Routes
 app.use('/api', DocumentRouter);
