@@ -15,6 +15,8 @@ router.post('/login', async (req, res) => {
   const supabaseAnon = getSupabaseAnon();
 
   try {
+    console.log(`[LOGIN] Attempting login for userid: ${userid}`);
+
     const { data: tech, error: techError } = await supabase
       .from('technicians')
       .select('email, userid')
@@ -22,10 +24,14 @@ router.post('/login', async (req, res) => {
       .single();
 
     if (techError || !tech) {
+      console.log(`[LOGIN] User not found in technicians table. userid: ${userid}, error: ${techError?.message}`);
       return res.status(401).json({ error: 'Invalid User ID or Password' });
     }
 
+    console.log(`[LOGIN] Found user in technicians. email: ${tech.email}`);
+
     if (!tech.email) {
+      console.log(`[LOGIN] User has no email. userid: ${userid}`);
       return res.status(401).json({ error: 'User does not have an email associated. Please contact support.' });
     }
 
@@ -35,9 +41,11 @@ router.post('/login', async (req, res) => {
     });
 
     if (authError) {
+      console.log(`[LOGIN] Supabase auth failed for ${tech.email}: ${authError.message}`);
       return res.status(401).json({ error: 'Invalid User ID or Password' });
     }
 
+    console.log(`[LOGIN] Login successful for userid: ${userid}`);
     res.json({ session: authData.session, user: tech });
   } catch (error) {
     console.error('Login error:', error);
