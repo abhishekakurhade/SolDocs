@@ -8,19 +8,39 @@ import WCRForm from './components/WCRForm';
 import SignIn from './pages/SignIn';
 import './App.css';
 
+import { supabase } from './services/supabaseClient';
+
 function App() {
   const [user, setUser] = useState(() => {
     const savedUser = sessionStorage.getItem('technician_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const handleLogin = (userData) => {
+  // Initialize session on startup
+  React.useEffect(() => {
+    const initSession = async () => {
+      const savedSession = sessionStorage.getItem('supabase_session');
+      if (savedSession) {
+        const session = JSON.parse(savedSession);
+        await supabase.auth.setSession(session);
+      }
+    };
+    initSession();
+  }, []);
+
+  const handleLogin = async (userData, session) => {
     sessionStorage.setItem('technician_user', JSON.stringify(userData));
+    if (session) {
+      sessionStorage.setItem('supabase_session', JSON.stringify(session));
+      await supabase.auth.setSession(session);
+    }
     setUser(userData);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     sessionStorage.removeItem('technician_user');
+    sessionStorage.removeItem('supabase_session');
+    await supabase.auth.signOut();
     setUser(null);
   };
 

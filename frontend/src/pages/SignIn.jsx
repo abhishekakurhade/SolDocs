@@ -31,7 +31,7 @@ function SignIn({ onLogin }) {
         throw new Error(data.error || 'Login failed');
       }
 
-      onLogin(data.user);
+      onLogin(data.user, data.session);
     } catch (err) {
       setError(err.message);
     } finally {
