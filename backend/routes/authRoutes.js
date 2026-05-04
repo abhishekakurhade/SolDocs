@@ -4,6 +4,13 @@ import 'dotenv/config';
 
 const router = express.Router();
 
+// Log env var status at startup to help debug production issues
+console.log('[AUTH] Env check:',
+  'SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ SET' : '❌ MISSING',
+  '| SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? '✅ SET' : '❌ MISSING',
+  '| SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ SET' : '❌ MISSING'
+);
+
 // Lazy initialization — avoids crash if env vars load after module import
 const getSupabase = () => createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 const getSupabaseAnon = () => createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
