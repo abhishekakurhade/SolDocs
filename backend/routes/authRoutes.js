@@ -74,10 +74,12 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'User ID already exists' });
     }
 
-    const dummyEmail = `${userid.replace(/[^a-zA-Z0-9]/g, '')}@soldocs.internal`;
+    // Supabase Auth requires an email internally — we derive one from the userid.
+    // It is never shown to the user and not stored in the technicians table.
+    const internalEmail = `${userid.replace(/[^a-zA-Z0-9]/g, '')}@soldocs.internal`;
 
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: dummyEmail,
+    const { error: authError } = await supabase.auth.admin.createUser({
+      email: internalEmail,
       password,
       email_confirm: true
     });
@@ -88,9 +90,7 @@ router.post('/signup', async (req, res) => {
 
     const { error: insertError } = await supabase
       .from('technicians')
-      .insert([
-        { userid, email: dummyEmail, password: 'encrypted_in_auth' }
-      ]);
+      .insert([{ userid }]);
 
     if (insertError) {
       console.error('Insert error:', insertError);
@@ -110,15 +110,8 @@ router.post('/reset-password', async (req, res) => {
   const supabase = getSupabase();
 
   try {
-    const { data: tech } = await supabase
-      .from('technicians')
-      .select('email')
-      .eq('userid', userid)
-      .single();
-
-    if (!tech || !tech.email) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    // Derive the internal email — no DB lookup needed
+    const internalEmail = `${userid.replace(/[^a-zA-Z0-9]/g, '')}@soldocs.internal`;
 
     const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
 
@@ -126,10 +119,10 @@ router.post('/reset-password', async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch users' });
     }
 
-    const authUser = users.find(u => u.email === tech.email);
+    const authUser = users.find(u => u.email === internalEmail);
 
     if (!authUser) {
-      return res.status(404).json({ error: 'User profile found but authentication record missing.' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const { error: updateError } = await supabase.auth.admin.updateUserById(authUser.id, { password: newPassword });
@@ -179,7 +172,7 @@ router.get('/profile/:userid', async (req, res) => {
 
 // Update Profile — uses service key to bypass RLS so the update always works
 router.put('/profile', async (req, res) => {
-  const { userid, company_name, company_address, email, mobile_number, sub_division, company_logo } = req.body;
+  const { userid, company_name, company_address, email, mobile_number, company_logo } = req.body;
   if (!userid) {
     return res.status(400).json({ error: 'userid is required' });
   }
@@ -189,7 +182,7 @@ router.put('/profile', async (req, res) => {
   try {
     const { error } = await supabase
       .from('technicians')
-      .update({ company_name, company_address, email, mobile_number, sub_division, company_logo })
+      .update({ company_name, company_address, email, mobile_number, company_logo })
       .eq('userid', userid);
 
     if (error) {

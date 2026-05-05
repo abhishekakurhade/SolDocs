@@ -16,7 +16,6 @@ const Profile = () => {
     mobile_number: '',
     address: '',
     site_address: '',
-    sub_division: '',
     logo: ''
   });
   const [loading, setLoading] = useState(true);
@@ -38,7 +37,6 @@ const Profile = () => {
           mobile_number: data.mobile_number || '',
           address: data.address || '',
           site_address: data.site_address || '',
-          sub_division: data.sub_division || '',
           logo: data.company_logo || ''
         });
       } catch (error) {
@@ -88,7 +86,6 @@ const Profile = () => {
           company_address: profile.company_address,
           email: profile.email,
           mobile_number: profile.mobile_number,
-          sub_division: profile.sub_division,
           company_logo: profile.logo
         })
       });
