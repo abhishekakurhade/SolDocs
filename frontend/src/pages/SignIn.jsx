@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './SignIn.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -13,6 +13,12 @@ function SignIn({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Ping the backend as soon as the login page loads so it wakes up from sleep
+  // (Render free tier spins down after inactivity — this hides the cold-start delay)
+  useEffect(() => {
+    fetch(`${API_URL}/api/auth/ping`).catch(() => {});
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();

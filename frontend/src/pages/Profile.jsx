@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
 import './Profile.css';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const getUser = () => {
   const userStr = sessionStorage.getItem('technician_user');
@@ -27,21 +28,19 @@ const Profile = () => {
       try {
         const user = getUser();
         if (!user) return;
-        const { data, error } = await supabase.from('technicians').select('*').eq('userid', user.userid).single();
-        if (error) {
-          console.error('Supabase error fetching profile:', error);
-        } else if (data) {
-          setProfile({
-            company_name: data.company_name || '',
-            company_address: data.company_address || '',
-            email: data.email || '',
-            mobile_number: data.mobile_number || '',
-            address: data.address || '',
-            site_address: data.site_address || '',
-            sub_division: data.sub_division || '',
-            logo: data.company_logo || ''
-          });
-        }
+        const res = await fetch(`${API_URL}/api/auth/profile/${encodeURIComponent(user.userid)}`);
+        if (!res.ok) throw new Error('Failed to fetch profile');
+        const data = await res.json();
+        setProfile({
+          company_name: data.company_name || '',
+          company_address: data.company_address || '',
+          email: data.email || '',
+          mobile_number: data.mobile_number || '',
+          address: data.address || '',
+          site_address: data.site_address || '',
+          sub_division: data.sub_division || '',
+          logo: data.company_logo || ''
+        });
       } catch (error) {
         console.error('Error fetching profile:', error);
       } finally {
@@ -75,24 +74,32 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setMessage('');
     try {
       const user = getUser();
-      const { error } = await supabase.from('technicians').update({
-        company_name: profile.company_name,
-        company_address: profile.company_address,
-        email: profile.email,
-        mobile_number: profile.mobile_number,
-        address: profile.address,
-        sub_division: profile.sub_division,
-        company_logo: profile.logo
-      }).eq('userid', user.userid);
+      if (!user) throw new Error('Not logged in');
 
-      if (error) throw error;
-      
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userid: user.userid,
+          company_name: profile.company_name,
+          company_address: profile.company_address,
+          email: profile.email,
+          mobile_number: profile.mobile_number,
+          sub_division: profile.sub_division,
+          company_logo: profile.logo
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update profile');
+
       setMessage('Profile updated successfully! ');
     } catch (error) {
       console.error('Error saving profile:', error);
-      setMessage('Error updating profile.');
+      setMessage(`Error updating profile: ${error.message}`);
     } finally {
       setSaving(false);
     }

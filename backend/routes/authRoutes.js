@@ -11,49 +11,47 @@ console.log('[AUTH] Env check:',
   '| SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ SET' : '❌ MISSING'
 );
 
-// Lazy initialization — avoids crash if env vars load after module import
-const getSupabase = () => createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const getSupabaseAnon = () => createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+// Cached client instances — created once after env vars are loaded
+let _supabase = null;
+let _supabaseAnon = null;
+const getSupabase = () => {
+  if (!_supabase) _supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  return _supabase;
+};
+const getSupabaseAnon = () => {
+  if (!_supabaseAnon) _supabaseAnon = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  return _supabaseAnon;
+};
+
+// Ping endpoint — lets the frontend warm up the backend before login
+router.get('/ping', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 // Login
 router.post('/login', async (req, res) => {
   const { userid, password } = req.body;
-  const supabase = getSupabase();
   const supabaseAnon = getSupabaseAnon();
 
   try {
     console.log(`[LOGIN] Attempting login for userid: ${userid}`);
 
-    const { data: tech, error: techError } = await supabase
-      .from('technicians')
-      .select('email, userid')
-      .eq('userid', userid)
-      .single();
-
-    if (techError || !tech) {
-      console.log(`[LOGIN] User not found in technicians table. userid: ${userid}, error: ${techError?.message}`);
-      return res.status(401).json({ error: 'Invalid User ID or Password' });
-    }
-
-    console.log(`[LOGIN] Found user in technicians. email: ${tech.email}`);
-
-    if (!tech.email) {
-      console.log(`[LOGIN] User has no email. userid: ${userid}`);
-      return res.status(401).json({ error: 'User does not have an email associated. Please contact support.' });
-    }
+    // Derive the internal email directly — same formula used at signup.
+    // This avoids a DB round-trip just to look up the email.
+    const internalEmail = `${userid.replace(/[^a-zA-Z0-9]/g, '')}@soldocs.internal`;
 
     const { data: authData, error: authError } = await supabaseAnon.auth.signInWithPassword({
-      email: tech.email,
+      email: internalEmail,
       password: password
     });
 
     if (authError) {
-      console.log(`[LOGIN] Supabase auth failed for ${tech.email}: ${authError.message}`);
+      console.log(`[LOGIN] Supabase auth failed for userid: ${userid} — ${authError.message}`);
       return res.status(401).json({ error: 'Invalid User ID or Password' });
     }
 
     console.log(`[LOGIN] Login successful for userid: ${userid}`);
-    res.json({ session: authData.session, user: tech });
+    res.json({ session: authData.session, user: { userid } });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -143,6 +141,65 @@ router.post('/reset-password', async (req, res) => {
     res.json({ message: 'Password reset successful' });
   } catch (error) {
     console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get Profile — fetches technician profile using service key
+router.get('/profile/:userid', async (req, res) => {
+  const { userid } = req.params;
+  if (!userid) {
+    return res.status(400).json({ error: 'userid is required' });
+  }
+
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('technicians')
+      .select('*')
+      .eq('userid', userid)
+      .single();
+
+    if (error) {
+      console.error('[PROFILE GET] Supabase error:', error);
+      return res.status(500).json({ error: error.message || 'Failed to fetch profile' });
+    }
+
+    if (!data) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error('[PROFILE GET] Unexpected error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update Profile — uses service key to bypass RLS so the update always works
+router.put('/profile', async (req, res) => {
+  const { userid, company_name, company_address, email, mobile_number, sub_division, company_logo } = req.body;
+  if (!userid) {
+    return res.status(400).json({ error: 'userid is required' });
+  }
+
+  const supabase = getSupabase();
+
+  try {
+    const { error } = await supabase
+      .from('technicians')
+      .update({ company_name, company_address, email, mobile_number, sub_division, company_logo })
+      .eq('userid', userid);
+
+    if (error) {
+      console.error('[PROFILE UPDATE] Supabase error:', error);
+      return res.status(500).json({ error: error.message || 'Failed to update profile' });
+    }
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('[PROFILE UPDATE] Unexpected error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
