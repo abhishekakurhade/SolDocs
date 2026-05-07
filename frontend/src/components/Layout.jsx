@@ -13,6 +13,7 @@ const getUser = () => {
 const Layout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(window.innerWidth <= 768);
   const [profile, setProfile] = useState(null);
+  const user = getUser();
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -88,7 +89,7 @@ const Layout = () => {
             <FontAwesomeIcon icon={faUser} className="icon" />
             {!isSidebarCollapsed && <span className="label">Profile</span>}
           </NavLink>
-          <div onClick={handleLogout} className="nav-item" style={{ cursor: 'pointer', marginTop: 'auto' }}>
+          <div onClick={handleLogout} className="nav-item" style={{ cursor: 'pointer' }}>
             <FontAwesomeIcon icon={faSignOutAlt} className="icon" style={{ color: '#ef4444' }} />
             {!isSidebarCollapsed && <span className="label" style={{ color: '#ef4444' }}>Logout</span>}
           </div>
@@ -108,6 +109,19 @@ const Layout = () => {
           </div>
 
           <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {user && (
+              <div className="navbar-username" style={{
+                background: 'rgba(232, 127, 36, 0.1)',
+                color: '#E87F24',
+                padding: '0.4rem 1rem',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                border: '1px solid rgba(232, 127, 36, 0.3)'
+              }}>
+                {profile?.company_name || user.userid}
+              </div>
+            )}
             {profile?.company_logo && (
               <img src={profile.company_logo} alt="Company Logo" className="navbar-company-logo" />
             )}

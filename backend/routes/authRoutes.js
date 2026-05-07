@@ -30,7 +30,8 @@ router.get('/ping', (req, res) => {
 
 // Login
 router.post('/login', async (req, res) => {
-  const { userid, password } = req.body;
+  let { userid, password } = req.body;
+  if (userid) userid = userid.trim();
   const supabaseAnon = getSupabaseAnon();
 
   try {
@@ -60,7 +61,8 @@ router.post('/login', async (req, res) => {
 
 // Signup
 router.post('/signup', async (req, res) => {
-  const { userid, password } = req.body;
+  let { userid, password } = req.body;
+  if (userid) userid = userid.trim();
   const supabase = getSupabase();
 
   try {
@@ -106,7 +108,8 @@ router.post('/signup', async (req, res) => {
 
 // Reset Password
 router.post('/reset-password', async (req, res) => {
-  const { userid, newPassword } = req.body;
+  let { userid, newPassword } = req.body;
+  if (userid) userid = userid.trim();
   const supabase = getSupabase();
 
   try {
@@ -140,7 +143,8 @@ router.post('/reset-password', async (req, res) => {
 
 // Get Profile — fetches technician profile using service key
 router.get('/profile/:userid', async (req, res) => {
-  const { userid } = req.params;
+  let { userid } = req.params;
+  if (userid) userid = userid.trim();
   if (!userid) {
     return res.status(400).json({ error: 'userid is required' });
   }
@@ -163,6 +167,11 @@ router.get('/profile/:userid', async (req, res) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
+    // Hide the internal dummy email from the user if they haven't updated it yet
+    if (data.email && data.email.endsWith('@soldocs.internal')) {
+      data.email = '';
+    }
+
     res.json(data);
   } catch (error) {
     console.error('[PROFILE GET] Unexpected error:', error);
@@ -172,7 +181,8 @@ router.get('/profile/:userid', async (req, res) => {
 
 // Update Profile — uses service key to bypass RLS so the update always works
 router.put('/profile', async (req, res) => {
-  const { userid, company_name, company_address, email, mobile_number, company_logo } = req.body;
+  let { userid, company_name, company_address, email, mobile_number, company_logo } = req.body;
+  if (userid) userid = userid.trim();
   if (!userid) {
     return res.status(400).json({ error: 'userid is required' });
   }

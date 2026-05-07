@@ -15,8 +15,7 @@ const Profile = () => {
     email: '',
     mobile_number: '',
     address: '',
-    site_address: '',
-    logo: ''
+    site_address: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,8 +35,7 @@ const Profile = () => {
           email: data.email || '',
           mobile_number: data.mobile_number || '',
           address: data.address || '',
-          site_address: data.site_address || '',
-          logo: data.company_logo || ''
+          site_address: data.site_address || ''
         });
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -47,21 +45,6 @@ const Profile = () => {
     };
     fetchProfile();
   }, []);
-
-  const handleLogoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfile(prev => ({ ...prev, logo: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveLogo = () => {
-    setProfile(prev => ({ ...prev, logo: '' }));
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -85,8 +68,7 @@ const Profile = () => {
           company_name: profile.company_name,
           company_address: profile.company_address,
           email: profile.email,
-          mobile_number: profile.mobile_number,
-          company_logo: profile.logo
+          mobile_number: profile.mobile_number
         })
       });
 
@@ -113,43 +95,6 @@ const Profile = () => {
       <div className="profile-card">
         <form onSubmit={handleSubmit} className="profile-form">
           <div className="form-section">
-            <div className="form-section">
-              <h2> Company Logo</h2>
-              <div className="logo-upload-area">
-                <div className="logo-preview">
-                  {profile.logo ? (
-                    <img src={profile.logo} alt="Company Logo" className="logo-img" />
-                  ) : (
-                    <div className="no-logo">No Logo Uploaded</div>
-                  )}
-                </div>
-                <div className="upload-controls">
-                  <input
-                    type="file"
-                    id="logo-input"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    hidden
-                  />
-                  <div className="logo-btns">
-                    <label htmlFor="logo-input" className="upload-btn">
-                      Upload Logo
-                    </label>
-                    {profile.logo && (
-                      <button
-                        type="button"
-                        onClick={handleRemoveLogo}
-                        className="remove-logo-btn"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                  <p className="upload-hint">Recommended: Square PNG or JPG, Max 2MB</p>
-                </div>
-              </div>
-            </div>
-
             <h2>Company Information</h2>
             <div className="form-grid">
               <div className="form-group">
