@@ -275,6 +275,18 @@ function SignIn({ onLogin }) {
                 <button type="submit" className="primary-gradient-btn" disabled={loading}>
                   {loading ? 'Creating Account...' : 'Sign Up'}
                 </button>
+
+                <p style={{ fontSize: '0.75rem', color: '#888', textAlign: 'center', marginTop: '0.75rem', lineHeight: '1.5' }}>
+                  ⚠️ If signup is successful but login doesn't work, go to{' '}
+                  <button
+                    type="button"
+                    onClick={() => setMode('reset')}
+                    style={{ fontSize: '0.75rem', color: '#E87F24', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                  >
+                    Forgot Password?
+                  </button>
+                  {' '}and reset your password.
+                </p>
               </form>
             )}
 
