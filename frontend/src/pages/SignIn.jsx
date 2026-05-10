@@ -102,7 +102,7 @@ function SignIn({ onLogin }) {
         throw new Error(data.error || 'Signup failed');
       }
 
-      // Automatically log the user in
+      // Automatically log the user in after signup
       const loginRes = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,7 +110,7 @@ function SignIn({ onLogin }) {
       });
       const loginData = await loginRes.json();
       if (loginRes.ok) {
-        onLogin(loginData.user);
+        onLogin(loginData.user, loginData.session); // ← pass session just like normal login
       } else {
         setMessage('Signup successful. Please login.');
         setMode('login');
