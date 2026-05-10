@@ -98,43 +98,47 @@ const Profile = () => {
             <h2>Company Information</h2>
             <div className="form-grid">
               <div className="form-group">
-                <label>Company Name</label>
+                <label>Company Name <span className="required-mark">*</span></label>
                 <input
                   type="text"
                   name="company_name"
                   value={profile.company_name}
                   onChange={handleChange}
                   placeholder="Enter your registered company name"
+                  required
                 />
               </div>
               <div className="form-group">
-                <label>Company Address</label>
+                <label>Company Address <span className="required-mark">*</span></label>
                 <input
                   type="text"
                   name="company_address"
                   value={profile.company_address}
                   onChange={handleChange}
                   placeholder="Official company address"
+                  required
                 />
               </div>
               <div className="form-group">
-                <label>Company Email</label>
+                <label>Company Email <span className="required-mark">*</span></label>
                 <input
                   type="email"
                   name="email"
                   value={profile.email}
                   onChange={handleChange}
                   placeholder="example@company.com"
+                  required
                 />
               </div>
               <div className="form-group">
-                <label>Mobile Number</label>
+                <label>Mobile Number <span className="required-mark">*</span></label>
                 <input
                   type="text"
                   name="mobile_number"
                   value={profile.mobile_number}
                   onChange={handleChange}
                   placeholder="Official mobile contact"
+                  required
                 />
               </div>
             </div>
