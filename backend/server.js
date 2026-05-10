@@ -21,26 +21,15 @@ if (!fs.existsSync(generatedDir)) {
 }
 
 // Middleware
-// Middleware - Smart CORS that self-configures for new domains
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
   .split(',')
   .map(o => o.trim());
 
 app.use(cors({
   origin: (origin, callback) => {
-    // 1. Allow requests with no origin (like mobile apps or curl)
+    // Allow requests with no origin (e.g. curl, mobile apps)
     if (!origin) return callback(null, true);
-
-    // 2. Automatically allow any .onrender.com subdomain
-    if (origin.endsWith('.onrender.com')) return callback(null, true);
-
-    // 3. Automatically allow your custom domain (Self-healing root fix)
-    // This looks for 'soldocs' in your domain name
-    if (origin.toLowerCase().includes('soldocs')) return callback(null, true);
-
-    // 4. Fallback to environment variables
     if (allowedOrigins.includes(origin)) return callback(null, true);
-
     console.warn(`CORS blocked: ${origin}`);
     return callback(new Error(`CORS not allowed for origin: ${origin}`));
   },
