@@ -37,9 +37,9 @@ router.post('/login', async (req, res) => {
   try {
     console.log(`[LOGIN] Attempting login for userid: ${userid}`);
 
-    // Derive the internal email directly — same formula used at signup.
-    // This avoids a DB round-trip just to look up the email.
-    const internalEmail = `${userid.replace(/[^a-zA-Z0-9]/g, '')}@soldocs.internal`;
+    // Use lowercased derivation for consistency
+    const cleanId = userid.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const internalEmail = `${cleanId}@soldocs.internal`;
 
     const { data: authData, error: authError } = await supabaseAnon.auth.signInWithPassword({
       email: internalEmail,
@@ -66,30 +66,45 @@ router.post('/signup', async (req, res) => {
   const supabase = getSupabase();
 
   try {
+    // 1. Case-insensitive check in the technicians table
     const { data: existingTech } = await supabase
       .from('technicians')
       .select('userid')
-      .eq('userid', userid)
+      .ilike('userid', userid)
       .maybeSingle();
 
     if (existingTech) {
       return res.status(400).json({ error: 'User ID already exists' });
     }
 
-    // Supabase Auth requires an email internally — we derive one from the userid.
-    // It is never shown to the user and not stored in the technicians table.
-    const internalEmail = `${userid.replace(/[^a-zA-Z0-9]/g, '')}@soldocs.internal`;
+    // 2. Derive a consistent, lowercased internal email
+    const cleanId = userid.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const internalEmail = `${cleanId}@soldocs.internal`;
 
-    const { error: authError } = await supabase.auth.admin.createUser({
+    // 3. Attempt to create the Auth user
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: internalEmail,
       password,
       email_confirm: true
     });
 
     if (authError) {
+      // ROOT FIX: If user exists in Auth but not in our table, finish the creation
+      if (authError.message.includes('already been registered')) {
+        console.log(`[SIGNUP] Found ghost user ${internalEmail}, repairing record...`);
+        
+        const { error: repairError } = await supabase
+          .from('technicians')
+          .insert([{ userid, password: '[SUPABASE_AUTH_ACTIVE]' }]);
+
+        if (!repairError) {
+          return res.json({ message: 'Signup successful (account recovered).' });
+        }
+      }
       return res.status(400).json({ error: authError.message });
     }
 
+    // 4. Create the technician record
     const { error: insertError } = await supabase
       .from('technicians')
       .insert([{ userid, password: '[SUPABASE_AUTH_ACTIVE]' }]);
