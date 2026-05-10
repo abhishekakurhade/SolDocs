@@ -126,10 +126,10 @@ router.post('/generate-wcr', async (req, res) => {
 
     if (insertError) console.error('Supabase Insert Error:', insertError);
 
-    // 5. Auto-cleanup: keep only the 25 most recent reports per user.
-    //    If the count exceeds 25, delete the oldest records (+ their Storage files).
+    // 5. Auto-cleanup: keep only the 10 most recent reports per user.
+    //    If the count exceeds 10, delete the oldest records (+ their Storage files).
     try {
-      const MAX_RECORDS = 25;
+      const MAX_RECORDS = 10;
       const { data: allReports, error: fetchErr } = await supabase
         .from('reports')
         .select('id, word_url, timestamp')
