@@ -70,7 +70,7 @@ router.post('/signup', async (req, res) => {
       .from('technicians')
       .select('userid')
       .eq('userid', userid)
-      .single();
+      .maybeSingle();
 
     if (existingTech) {
       return res.status(400).json({ error: 'User ID already exists' });
@@ -92,7 +92,7 @@ router.post('/signup', async (req, res) => {
 
     const { error: insertError } = await supabase
       .from('technicians')
-      .insert([{ userid }]);
+      .insert([{ userid, password: '[SUPABASE_AUTH_ACTIVE]' }]);
 
     if (insertError) {
       console.error('Insert error:', insertError);
