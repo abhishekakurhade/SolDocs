@@ -32,17 +32,28 @@ router.get('/ping', (req, res) => {
 router.post('/login', async (req, res) => {
   let { userid, password } = req.body;
   if (userid) userid = userid.trim();
+  const supabase = getSupabase();
   const supabaseAnon = getSupabaseAnon();
 
   try {
     console.log(`[LOGIN] Attempting login for userid: ${userid}`);
 
-    // Use lowercased derivation for consistency
-    const cleanId = userid.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const internalEmail = `${cleanId}@soldocs.internal`;
+    // Look up the user's actual email from the technicians table
+    const { data: techData, error: lookupError } = await supabase
+      .from('technicians')
+      .select('email')
+      .ilike('userid', userid)
+      .maybeSingle();
+
+    if (lookupError || !techData) {
+      console.log(`[LOGIN] User not found in technicians table: ${userid}`);
+      return res.status(401).json({ error: 'Invalid User ID or Password' });
+    }
+
+    const loginEmail = techData.email;
 
     const { data: authData, error: authError } = await supabaseAnon.auth.signInWithPassword({
-      email: internalEmail,
+      email: loginEmail,
       password: password
     });
 
@@ -61,9 +72,14 @@ router.post('/login', async (req, res) => {
 
 // Signup
 router.post('/signup', async (req, res) => {
-  let { userid, password } = req.body;
+  let { userid, email, password } = req.body;
   if (userid) userid = userid.trim();
+  if (email) email = email.trim().toLowerCase();
   const supabase = getSupabase();
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
 
   try {
     // 1. Case-insensitive check in the technicians table
@@ -77,13 +93,20 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'User ID already exists' });
     }
 
-    // 2. Derive a consistent, lowercased internal email
-    const cleanId = userid.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const internalEmail = `${cleanId}@soldocs.internal`;
+    // 2. Check if email is already used
+    const { data: existingEmail } = await supabase
+      .from('technicians')
+      .select('userid')
+      .ilike('email', email)
+      .maybeSingle();
 
-    // 3. Attempt to create the Auth user
+    if (existingEmail) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    // 3. Attempt to create the Auth user with the real email
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: internalEmail,
+      email,
       password,
       email_confirm: true
     });
@@ -91,11 +114,11 @@ router.post('/signup', async (req, res) => {
     if (authError) {
       // ROOT FIX: If user exists in Auth but not in our table, finish the creation
       if (authError.message.includes('already been registered')) {
-        console.log(`[SIGNUP] Found ghost user ${internalEmail}, repairing record...`);
+        console.log(`[SIGNUP] Found ghost user ${email}, repairing record...`);
         
         const { error: repairError } = await supabase
           .from('technicians')
-          .insert([{ userid, password: '[SUPABASE_AUTH_ACTIVE]' }]);
+          .insert([{ userid, email, password: '[SUPABASE_AUTH_ACTIVE]' }]);
 
         if (!repairError) {
           return res.json({ message: 'Signup successful (account recovered).' });
@@ -107,7 +130,7 @@ router.post('/signup', async (req, res) => {
     // 4. Create the technician record
     const { error: insertError } = await supabase
       .from('technicians')
-      .insert([{ userid, password: '[SUPABASE_AUTH_ACTIVE]' }]);
+      .insert([{ userid, email, password: '[SUPABASE_AUTH_ACTIVE]' }]);
 
     if (insertError) {
       console.error('Insert error:', insertError);
@@ -128,8 +151,16 @@ router.post('/reset-password', async (req, res) => {
   const supabase = getSupabase();
 
   try {
-    // Derive the internal email — no DB lookup needed
-    const internalEmail = `${userid.replace(/[^a-zA-Z0-9]/g, '')}@soldocs.internal`;
+    // Look up the user's real email from the technicians table
+    const { data: techData, error: lookupError } = await supabase
+      .from('technicians')
+      .select('email')
+      .ilike('userid', userid)
+      .maybeSingle();
+
+    if (lookupError || !techData) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
 
@@ -137,7 +168,7 @@ router.post('/reset-password', async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch users' });
     }
 
-    const authUser = users.find(u => u.email === internalEmail);
+    const authUser = users.find(u => u.email === techData.email);
 
     if (!authUser) {
       return res.status(404).json({ error: 'User not found' });

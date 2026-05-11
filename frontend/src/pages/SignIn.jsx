@@ -6,6 +6,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 function SignIn({ onLogin }) {
   const [mode, setMode] = useState('login'); // 'login', 'signup', 'otp'
   const [userid, setUserid] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -94,7 +95,7 @@ function SignIn({ onLogin }) {
       const response = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userid, password })
+        body: JSON.stringify({ userid, email, password })
       });
 
       const data = await response.json();
@@ -231,6 +232,19 @@ function SignIn({ onLogin }) {
                 </div>
 
                 <div className="input-group">
+                  <label>Email</label>
+                  <div className="input-wrapper">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email address"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="input-group">
                   <label>Password</label>
                   <div className="input-wrapper">
                     <input
@@ -275,18 +289,6 @@ function SignIn({ onLogin }) {
                 <button type="submit" className="primary-gradient-btn" disabled={loading}>
                   {loading ? 'Creating Account...' : 'Sign Up'}
                 </button>
-
-                <p style={{ fontSize: '0.75rem', color: '#888', textAlign: 'center', marginTop: '0.75rem', lineHeight: '1.5' }}>
-                  ⚠️ If signup is successful but login doesn't work, go to{' '}
-                  <button
-                    type="button"
-                    onClick={() => setMode('reset')}
-                    style={{ fontSize: '0.75rem', color: '#E87F24', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
-                  >
-                    Forgot Password?
-                  </button>
-                  {' '}and reset your password.
-                </p>
               </form>
             )}
 
