@@ -85,6 +85,11 @@ function SignIn({ onLogin }) {
     setError('');
     setMessage('');
 
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -252,7 +257,8 @@ function SignIn({ onLogin }) {
                       className="password-input"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Min. 6 characters"
+                      minLength={6}
                       required
                     />
                     <button
@@ -273,7 +279,8 @@ function SignIn({ onLogin }) {
                       className="password-input"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Re-enter password"
+                      minLength={6}
                       required
                     />
                     <button
