@@ -67,7 +67,6 @@ const Profile = () => {
           userid: user.userid,
           company_name: profile.company_name,
           company_address: profile.company_address,
-          email: profile.email,
           mobile_number: profile.mobile_number
         })
       });
@@ -91,6 +90,19 @@ const Profile = () => {
       <header className="page-header">
         <h1>Company Profile</h1>
       </header>
+
+      {/* Account Info — read-only display */}
+      {profile.email && (
+        <div className="account-info-banner">
+          <div className="account-info-inner">
+            <span className="account-info-icon">✉️</span>
+            <div>
+              <p className="account-info-label">Account Email</p>
+              <p className="account-info-value">{profile.email}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="profile-card">
         <form onSubmit={handleSubmit} className="profile-form">
@@ -116,17 +128,6 @@ const Profile = () => {
                   value={profile.company_address}
                   onChange={handleChange}
                   placeholder="Official company address"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Company Email <span className="required-mark">*</span></label>
-                <input
-                  type="email"
-                  name="email"
-                  value={profile.email}
-                  onChange={handleChange}
-                  placeholder="example@company.com"
                   required
                 />
               </div>
