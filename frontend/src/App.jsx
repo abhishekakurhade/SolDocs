@@ -29,6 +29,7 @@ function App() {
   }, []);
 
   const handleLogin = async (userData, session) => {
+    // Persist full user object (userid + email) to sessionStorage
     sessionStorage.setItem('technician_user', JSON.stringify(userData));
     if (session) {
       sessionStorage.setItem('supabase_session', JSON.stringify(session));

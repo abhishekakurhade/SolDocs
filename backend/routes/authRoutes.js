@@ -63,7 +63,9 @@ router.post('/login', async (req, res) => {
     }
 
     console.log(`[LOGIN] Login successful for userid: ${userid}`);
-    res.json({ session: authData.session, user: { userid } });
+    // Return email too — already fetched from DB, useful for profile pre-fill
+    const userEmail = loginEmail && loginEmail.endsWith('@soldocs.internal') ? '' : loginEmail;
+    res.json({ session: authData.session, user: { userid, email: userEmail } });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -127,16 +129,19 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: authError.message });
     }
 
-    // 4. Create the technician record
-    const { error: insertError } = await supabase
+    // 4. Create the technician record — use upsert so email always gets saved
+    console.log(`[SIGNUP] Inserting technician record: userid=${userid}, email=${email}`);
+    const { data: insertedData, error: insertError } = await supabase
       .from('technicians')
-      .insert([{ userid, email, password: '[SUPABASE_AUTH_ACTIVE]' }]);
+      .upsert([{ userid, email, password: '[SUPABASE_AUTH_ACTIVE]' }], { onConflict: 'userid' })
+      .select();
 
     if (insertError) {
-      console.error('Insert error:', insertError);
+      console.error('[SIGNUP] Insert/upsert error:', JSON.stringify(insertError));
       return res.status(500).json({ error: 'Failed to create user profile' });
     }
 
+    console.log(`[SIGNUP] Technician record saved:`, JSON.stringify(insertedData));
     res.json({ message: 'Signup successful.' });
   } catch (error) {
     console.error('Signup error:', error);
