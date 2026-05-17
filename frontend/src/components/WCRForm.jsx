@@ -68,7 +68,13 @@ const WCRForm = () => {
   }, []);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    // Strip non-numeric characters for numeric-only fields
+    if (name === 'mobile_number' || name === 'aadhar_number') {
+      value = value.replace(/\D/g, '');
+    }
+
     setFormData(prevState => {
       const newState = {
         ...prevState,
@@ -111,6 +117,22 @@ const WCRForm = () => {
       const fieldLabels = missingFields.map(f => f.label).join(', ');
       setError(`Please fill all required fields: ${fieldLabels}`);
       return false;
+    }
+
+    // Validate mobile number: exactly 10 digits
+    if (stepId === 'personal' && formData.mobile_number) {
+      if (!/^\d{10}$/.test(formData.mobile_number)) {
+        setError('Mobile Number must be exactly 10 digits.');
+        return false;
+      }
+    }
+
+    // Validate Aadhar number: exactly 12 digits
+    if (stepId === 'personal' && formData.aadhar_number) {
+      if (!/^\d{12}$/.test(formData.aadhar_number)) {
+        setError('Aadhar Number must be exactly 12 digits.');
+        return false;
+      }
     }
 
     return true;
@@ -359,7 +381,16 @@ const WCRForm = () => {
                       name={field.name}
                       value={formData[field.name]}
                       onChange={handleInputChange}
-                      placeholder={`Enter ${field.label.toLowerCase()}`}
+                      placeholder={
+                        field.name === 'mobile_number'
+                          ? 'Enter 10-digit mobile number'
+                          : field.name === 'aadhar_number'
+                          ? 'Enter 12-digit Aadhar number'
+                          : `Enter ${field.label.toLowerCase()}`
+                      }
+                      inputMode={field.name === 'mobile_number' || field.name === 'aadhar_number' ? 'numeric' : undefined}
+                      maxLength={field.name === 'mobile_number' ? 10 : field.name === 'aadhar_number' ? 12 : undefined}
+                      pattern={field.name === 'mobile_number' ? '\\d{10}' : field.name === 'aadhar_number' ? '\\d{12}' : undefined}
                     />
                   )}
                 </div>

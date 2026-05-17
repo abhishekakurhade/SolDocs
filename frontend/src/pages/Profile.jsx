@@ -54,15 +54,28 @@ const Profile = () => {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    // Strip non-numeric characters for mobile number
+    if (name === 'mobile_number') {
+      value = value.replace(/\D/g, '');
+    }
+
     setProfile(prev => ({ ...prev, [name]: value }));
     setMessage('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
     setMessage('');
+
+    // Validate mobile number: exactly 10 digits
+    if (profile.mobile_number && !/^\d{10}$/.test(profile.mobile_number)) {
+      setMessage('Error: Mobile Number must be exactly 10 digits.');
+      return;
+    }
+
+    setSaving(true);
     try {
       const user = getUser();
       if (!user) throw new Error('Not logged in');
@@ -144,7 +157,10 @@ const Profile = () => {
                   name="mobile_number"
                   value={profile.mobile_number}
                   onChange={handleChange}
-                  placeholder="Official mobile contact"
+                  placeholder="Enter 10-digit mobile number"
+                  inputMode="numeric"
+                  maxLength={10}
+                  pattern="\d{10}"
                   required
                 />
               </div>
