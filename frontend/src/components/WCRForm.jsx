@@ -13,6 +13,7 @@ const WCRForm = () => {
   const [fetchingFields, setFetchingFields] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [hasIncompleteProfile, setHasIncompleteProfile] = useState(false);
   const [isOtherCategory, setIsOtherCategory] = useState(false);
   const [isOtherPhase, setIsOtherPhase] = useState(false);
 
@@ -20,8 +21,7 @@ const WCRForm = () => {
     { title: 'Customer Information', icon: <FontAwesomeIcon icon={faUser} />, id: 'personal' },
     { title: 'Address Information', icon: <FontAwesomeIcon icon={faMapMarkerAlt} />, id: 'address' },
     { title: 'Solar Details', icon: <FontAwesomeIcon icon={faSun} />, id: 'solar' },
-    { title: 'Inverter Details', icon: <FontAwesomeIcon icon={faPlug} />, id: 'inverter' },
-    { title: 'Company Information', icon: <FontAwesomeIcon icon={faBuilding} />, id: 'contact' }
+    { title: 'Inverter Details', icon: <FontAwesomeIcon icon={faPlug} />, id: 'inverter' }
   ];
 
   useEffect(() => {
@@ -33,7 +33,14 @@ const WCRForm = () => {
         let profileData = {};
         if (user && user.userid) {
           const { data } = await supabase.from('technicians').select('*').eq('userid', user.userid).single();
-          if (data) profileData = data;
+          if (data) {
+            profileData = data;
+            if (!data.company_name || !data.company_address) {
+              setHasIncompleteProfile(true);
+            }
+          } else {
+            setHasIncompleteProfile(true);
+          }
         }
 
         const fieldsData = await fetchWCRTemplateFields();
@@ -46,8 +53,6 @@ const WCRForm = () => {
             initialState[field.name] = profileData.company_name || '';
           } else if (field.name === 'company_address') {
             initialState[field.name] = profileData.company_address || '';
-          } else if (field.name === 'district') {
-            initialState[field.name] = profileData.district || '';
           } else {
             initialState[field.name] = '';
           }
@@ -63,7 +68,13 @@ const WCRForm = () => {
   }, []);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    // Strip non-numeric characters for numeric-only fields
+    if (name === 'mobile_number' || name === 'aadhar_number') {
+      value = value.replace(/\D/g, '');
+    }
+
     setFormData(prevState => {
       const newState = {
         ...prevState,
@@ -93,9 +104,6 @@ const WCRForm = () => {
     const requiredForPersonal = ['name', 'consumer_number', 'aadhar_number', 'mobile_number', 'email'];
 
     const missingFields = currentFields.filter(field => {
-      // Step 4 (contact) is not required
-      if (stepId === 'contact') return false;
-
       // Step 0 (personal) has specific required fields
       if (stepId === 'personal') {
         return requiredForPersonal.includes(field.name) && !formData[field.name];
@@ -109,6 +117,22 @@ const WCRForm = () => {
       const fieldLabels = missingFields.map(f => f.label).join(', ');
       setError(`Please fill all required fields: ${fieldLabels}`);
       return false;
+    }
+
+    // Validate mobile number: exactly 10 digits
+    if (stepId === 'personal' && formData.mobile_number) {
+      if (!/^\d{10}$/.test(formData.mobile_number)) {
+        setError('Mobile Number must be exactly 10 digits.');
+        return false;
+      }
+    }
+
+    // Validate Aadhar number: exactly 12 digits
+    if (stepId === 'personal' && formData.aadhar_number) {
+      if (!/^\d{12}$/.test(formData.aadhar_number)) {
+        setError('Aadhar Number must be exactly 12 digits.');
+        return false;
+      }
     }
 
     return true;
@@ -188,18 +212,46 @@ const WCRForm = () => {
         return fields.filter(f => ['installation_date', 'sanctioned_capacity', 'sanction_number', 'category'].includes(f.name));
       case 'inverter':
         return fields.filter(f => ['module', 'number_module', 'wattage', 'total_capacity', 'almm_model_number', 'inverter_make', 'capacity_of_inverter', 'year_of_manufacturing', 'Phase',].includes(f.name));
-      case 'contact':
-        return fields.filter(f => ['company_name', 'company_address',].includes(f.name));
       default:
         return [];
     }
   };
 
+  const getRequiredFields = () => {
+    let required = [];
+    steps.forEach(step => {
+      const stepFields = getStepFields(step.id);
+      if (step.id === 'personal') {
+        required = [...required, ...stepFields.filter(f => ['name', 'consumer_number', 'aadhar_number', 'mobile_number', 'email'].includes(f.name))];
+      } else {
+        required = [...required, ...stepFields];
+      }
+    });
+    return required;
+  };
+
   const currentStepFields = getStepFields(steps[currentStep].id);
-  const progressPercent = Math.round(((currentStep + 1) / steps.length) * 100);
+
+  const requiredFields = getRequiredFields();
+  const filledRequiredFields = requiredFields.filter(f => {
+    const val = formData[f.name];
+    return val && val.toString().trim() !== '';
+  });
+
+  const progressPercent = requiredFields.length > 0 ? Math.round((filledRequiredFields.length / requiredFields.length) * 100) : 0;
 
   return (
     <div className="wcr-stepper-container">
+      {/* Generating overlay — visible on all screens, especially helpful on mobile/tablet */}
+      {wordLoading && (
+        <div className="generating-overlay">
+          <div className="generating-card">
+            <div className="generating-spinner"></div>
+            <p className="generating-title">Generating Document...</p>
+            <p className="generating-sub">Please wait, your Word file is being created.</p>
+          </div>
+        </div>
+      )}
       <div className="stepper-wrapper no-print">
         <div className="profile-completeness">
           <span>Profile Completeness</span>
@@ -227,6 +279,13 @@ const WCRForm = () => {
             <h2>{steps[currentStep].title}</h2>
           </header>
 
+          {hasIncompleteProfile && (
+            <div className="alert alert-error" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #f87171' }}>
+              <FontAwesomeIcon icon={faBuilding} />
+              <span><strong>Action Required:</strong> Please complete your Profile first. Your Company details are missing, which means they will not appear in the generated WCR document.</span>
+            </div>
+          )}
+
           {error && <div className="alert alert-error">{error}</div>}
           {success && <div className="alert alert-success">{success}</div>}
 
@@ -236,9 +295,8 @@ const WCRForm = () => {
                 <div key={field.name} className="form-group">
                   <label htmlFor={field.name}>
                     {field.label}
-                    {(steps[currentStep].id !== 'contact' &&
-                      (steps[currentStep].id !== 'personal' || ['name', 'consumer_number', 'aadhar_number', 'mobile_number', 'email'].includes(field.name))
-                    ) && <span className="required">*</span>}
+                    {(steps[currentStep].id !== 'personal' || ['name', 'consumer_number', 'aadhar_number', 'mobile_number', 'email'].includes(field.name))
+                      && <span className="required">*</span>}
                   </label>
                   {field.type === 'date' ? (
                     <div className="date-input-wrapper">
@@ -323,7 +381,16 @@ const WCRForm = () => {
                       name={field.name}
                       value={formData[field.name]}
                       onChange={handleInputChange}
-                      placeholder={`Enter ${field.label.toLowerCase()}`}
+                      placeholder={
+                        field.name === 'mobile_number'
+                          ? 'Enter 10-digit mobile number'
+                          : field.name === 'aadhar_number'
+                          ? 'Enter 12-digit Aadhar number'
+                          : `Enter ${field.label.toLowerCase()}`
+                      }
+                      inputMode={field.name === 'mobile_number' || field.name === 'aadhar_number' ? 'numeric' : undefined}
+                      maxLength={field.name === 'mobile_number' ? 10 : field.name === 'aadhar_number' ? 12 : undefined}
+                      pattern={field.name === 'mobile_number' ? '\\d{10}' : field.name === 'aadhar_number' ? '\\d{12}' : undefined}
                     />
                   )}
                 </div>

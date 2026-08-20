@@ -59,6 +59,7 @@ router.post('/generate-document', async (req, res) => {
 /**
  * POST /api/generate-wcr
  * Generate a WCR Word document by filling placeholders
+ * Files are uploaded to Supabase Storage for permanent persistence.
  */
 router.post('/generate-wcr', async (req, res) => {
   try {
@@ -71,7 +72,6 @@ router.post('/generate-wcr', async (req, res) => {
 
     // Format installation_date if it exists
     if (data.installation_date) {
-      // In case it's in YYYY-MM-DD from a previous version or inconsistent entry
       const dateMatch = data.installation_date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
       if (dateMatch) {
         data.installation_date = `${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`;
@@ -79,42 +79,100 @@ router.post('/generate-wcr', async (req, res) => {
     }
 
     const { name } = data;
+    const userid = data.userid;
+    if (!userid) throw new Error('Unauthorized: User ID is missing from request');
 
     // Sanitize filename
     const sanitizedName = (name || 'wcr_report').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
     const filename = `${sanitizedName}.docx`;
 
-    // 1. Generate DOCX
+    // 1. Generate DOCX buffer
     const fileBuffer = await docGenerator.generateDocument(data, 'wcr template.docx');
 
-    // 2. Save Word file
+    // 2. Upload to Supabase Storage (permanent — survives server restarts)
     const fileId = Date.now();
-    const wordFilename = `${fileId}_${sanitizedName}.docx`;
-    fs.writeFileSync(path.join(__dirname, '../generated', wordFilename), fileBuffer);
+    const storagePath = `${userid}/${fileId}_${sanitizedName}.docx`;
 
-    // 3. Log history to Supabase
-    const userid = data.userid;
-    if (!userid) throw new Error('Unauthorized: User ID is missing from request');
+    const { error: uploadError } = await supabase.storage
+      .from('wcr-documents')
+      .upload(storagePath, fileBuffer, {
+        contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        upsert: false
+      });
 
+    if (uploadError) {
+      console.error('Supabase Storage Upload Error:', uploadError);
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
+    }
+
+    // 3. Get the public URL for the uploaded file
+    const { data: urlData } = supabase.storage
+      .from('wcr-documents')
+      .getPublicUrl(storagePath);
+
+    const wordUrl = urlData?.publicUrl || null;
+
+    // 4. Log history to Supabase DB
     const { error: insertError } = await supabase.from('reports').insert([{
       technician_id: userid,
-      filename: `${sanitizedName}.docx`,
+      filename: filename,
       type: 'DOCX',
       customer_name: name || 'Unknown',
       customer_mobile: data.mobile_number || null,
       consumer_number: data.consumer_number || null,
       aadhar_number: data.aadhar_number || null,
-      word_url: `/generated/${wordFilename}`
+      word_url: wordUrl
     }]);
+
     if (insertError) console.error('Supabase Insert Error:', insertError);
 
-    // Set response headers
+    // 5. Auto-cleanup: keep only the 10 most recent reports per user.
+    //    If the count exceeds 10, delete the oldest records (+ their Storage files).
+    try {
+      const MAX_RECORDS = 10;
+      const { data: allReports, error: fetchErr } = await supabase
+        .from('reports')
+        .select('id, word_url, timestamp')
+        .eq('technician_id', userid)
+        .order('timestamp', { ascending: false }); // newest first
+
+      if (!fetchErr && allReports && allReports.length > MAX_RECORDS) {
+        const toDelete = allReports.slice(MAX_RECORDS); // everything beyond the top 25
+
+        for (const record of toDelete) {
+          // Delete Storage file if URL is a Supabase Storage URL
+          if (record.word_url && record.word_url.startsWith('http')) {
+            try {
+              // Extract the path inside the bucket from the public URL
+              // URL format: https://<project>.supabase.co/storage/v1/object/public/wcr-documents/<path>
+              const urlObj = new URL(record.word_url);
+              const pathParts = urlObj.pathname.split('/wcr-documents/');
+              if (pathParts.length === 2) {
+                const storagePath = pathParts[1];
+                await supabase.storage.from('wcr-documents').remove([storagePath]);
+              }
+            } catch (storageErr) {
+              console.warn('Auto-cleanup storage delete failed for record', record.id, storageErr.message);
+            }
+          }
+
+          // Delete DB row
+          await supabase.from('reports').delete().eq('id', record.id);
+        }
+
+        console.log(`Auto-cleanup: removed ${toDelete.length} old record(s) for user ${userid}`);
+      }
+    } catch (cleanupErr) {
+      // Non-fatal — log and continue
+      console.warn('Auto-cleanup error:', cleanupErr.message);
+    }
+
+    // 6. Send the generated document directly to the user for immediate download
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', fileBuffer.length);
-
-    // Send the document
     res.send(fileBuffer);
+
   } catch (error) {
     console.error('Error generating WCR document:', error);
     res.status(500).json({
