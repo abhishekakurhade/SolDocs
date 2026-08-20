@@ -122,6 +122,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date().toISOString() });
 });
 
+// ─── Loader.io Verification ──────────────────────────────────────────────────
+app.get('/loaderio-3f6012fc1a6afd0fb9ceb72babe2c18e', (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send('loaderio-3f6012fc1a6afd0fb9ceb72babe2c18e');
+});
+
+app.get('/loaderio-3f6012fc1a6afd0fb9ceb72babe2c18e.txt', (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send('loaderio-3f6012fc1a6afd0fb9ceb72babe2c18e');
+});
+
 // ─── Error Handling ───────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
